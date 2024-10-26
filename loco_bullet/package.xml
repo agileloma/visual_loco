@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" 
+  schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>loco_bullet</name>
+  <version>0.0.0</version>
+  <description>Pybullet simulation interface for the quadrupedal robot.</description>
+  <maintainer email="junli@hit.edu.cn">Li Jun</maintainer>
+  <license>BSD 3-clause</license>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
