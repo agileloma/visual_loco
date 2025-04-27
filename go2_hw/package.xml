@@ -2,19 +2,15 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" 
   schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>visual_loco</name>
-  <version>0.0.1</version>
-  <description>
-    Metapackage to aggregate all packages in visual_loco project.
-  </description>
+  <name>go2_hw</name>
+  <version>1.0.0</version>
+  <description>Hardware interface for the Go2 quadrupedal robot.</description>
   <maintainer email="junli@hit.edu.cn">Li Jun</maintainer>
   <license>BSD3</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-
-  <depend>go2_description</depend>
+  
   <depend>commutils</depend>
-  <edepend>go2_hw</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
