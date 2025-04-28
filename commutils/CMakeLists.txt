@@ -6,38 +6,81 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
+# Enable good warnings if GCC/Clang
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
+# Find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
 
-# build the main library
+# Declare the library (INTERFACE library)
 add_library(${PROJECT_NAME} INTERFACE)
+# Specify the include directories
 target_include_directories(${PROJECT_NAME}
   INTERFACE 
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+# Link to dependencies
 target_link_libraries(${PROJECT_NAME} 
   INTERFACE
     Eigen3::Eigen
-    ${YAML_CPP_LIBRARIES}
+    yaml-cpp
 )
 
+# Install header files
 install(DIRECTORY include/
   DESTINATION include
 )
 
+# Install the target
 install(TARGETS
     ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
+  INCLUDES DESTINATION include
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
 )
 
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+# Unit test
+include(CTest)
+if(BUILD_TESTING)
+    find_package(GTest REQUIRED)
+    include(GoogleTest)
+
+    add_executable(test_${PROJECT_NAME}
+        test/gtest_main.cpp
+        test/csv/test_csv_writer.cpp
+        test/yaml/test_yaml_tools.cpp
+        test/yaml/test_yaml_eigen.cpp
+    )
+    target_include_directories(test_${PROJECT_NAME}
+      PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    )
+    target_link_libraries(test_${PROJECT_NAME}
+      PUBLIC
+        Eigen3::Eigen
+        ${YAML_CPP_LIBRARIES}
+        GTest::gtest
+    )
+    add_test(TARGET test_${PROJECT_NAME})
+endif()
+
+# Export targets for find_package
+install(EXPORT export_${PROJECT_NAME}
+  FILE ${PROJECT_NAME}Targets.cmake
+  NAMESPACE ${PROJECT_NAME}::
+  DESTINATION share/${PROJECT_NAME}/cmake
+)
+
+# Export for ament
+ament_export_include_directories(include)
+ament_export_targets(export_${PROJECT_NAME})
+ament_export_dependencies(Eigen3 yaml-cpp)
 
 ament_package()
