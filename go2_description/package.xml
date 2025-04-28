@@ -3,10 +3,12 @@
   schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>go2_description</name>
-  <version>1.0.0</version>
-  <description>URDF description for the Go2 quadrupedal robot.</description>
-  <maintainer email="junli@hit.edu.cn">Li Jun</maintainer>
-  <license>BSD3</license>
+  <version>0.1.0</version>
+  <description>
+    URDF description for the Go2 quadrupedal robot.
+  </description>
+  <maintainer email="junli@hit.edu.cn">Jun Li </maintainer>
+  <license>BSD 3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
