@@ -1,14 +1,14 @@
 /* ----------------------------------------------------------------------------
- * Copyright (c) 2021, University of Leeds and Harbin Institute of Technology.
+ * Copyright (c) 2025, Harbin Institute of Technology.
  * All Rights Reserved
  * See LICENSE for the license information
  * -------------------------------------------------------------------------- */
 
 /**
  *  @file   csv_writer.hpp
- *  @author Jun Li (junlileeds@gmail.com)
- *  @brief  File for CSVWriter class
- *  @date   July 08, 2022
+ *  @author Jun Li (junli@hit.edu.cn)
+ *  @brief  CSVWriter class for writing CSV files
+ *  @date   April 28, 2025
  **/
 
 #pragma once
@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <sstream>
+#include <stdexcept>
 
 #include <Eigen/Dense>
 
@@ -26,54 +28,92 @@ class CSVWriter
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    typedef Eigen::VectorXd VectorXd;
-    typedef const Eigen::Ref<const VectorXd>&  ConstRefVectorXd;
+    using VectorXd = Eigen::VectorXd;
+    using ConstRefVectorXd = const Eigen::Ref<const VectorXd>&;
 
-    CSVWriter(const std::string& filename, const std::string& delm = ",")
-        : filename_(filename), delimeter_(delm), lines_count_(0)
+    /**
+     * @brief Constructor to initialize the CSVWriter with a filename and delimiter.
+     * @param filename The name of the CSV file to write to.
+     * @param delimiter The delimiter to use between values (default is comma).
+     */
+    CSVWriter(const std::string& filename, const std::string& delimiter = ",")
+        : filename_(filename), delimiter_(delimiter), lines_count_(0)
     {}
 
+    /**
+     * @brief Add a header row to the CSV file.
+     * @param heading A vector of strings representing the header row.
+     * @throw std::runtime_error If the file fails to open.
+     */
     void addDataHeading(const std::vector<std::string>& heading)
     {
-        std::fstream file;
-        // Open the file in truncate mode if first line else in Append Mode
-        file.open(filename_, std::ios::out | (lines_count_ ? std::ios::app : std::ios::trunc));
-        // Iterate over the range and add each element to file seperated by delimeter.
+        heading_size_ = heading.size();  // Store the size for validation
+
+        std::ofstream file;
+        openFile(file);
+
         auto first = heading.begin();
         auto last = heading.end();
         for (; first != last; ) {
             file << *first;
             if (++first != last)
-                file << delimeter_;
+                file << delimiter_;
         }
         file << "\n";
+
         lines_count_++;
-        // Close the file
-        file.close();
+
+        file.close();  // Close the file
     }
 
+    /**
+     * @brief Add a row of data to the CSV file.
+     * @param data A vector of double values to write as a row.
+     * @throw std::runtime_error If the file fails to open.
+     */
     void addDataInRow(ConstRefVectorXd data)
     {
-        std::fstream file;
-        // Open the file in truncate mode if first line else in Append Mode
-        file.open(filename_, std::ios::out | (lines_count_ ? std::ios::app : std::ios::trunc));
-        // Iterate over the range and add each element to file seperated by delimeter.
+        if (heading_size_ > 0 && 
+            heading_size_ != static_cast<std::size_t>(data.size())) {
+            throw std::runtime_error(
+                "Column count mismatch between data heading and data row");
+        }
+
+        std::ofstream file;
+        openFile(file);
+
         std::size_t data_size = data.size();
         for (std::size_t i = 0; i < data_size; i++) {
             file << data(i);
-            if (i < data_size-1)
-                file << delimeter_;
+            if (i < data_size - 1)
+                file << delimiter_;
         }
         file << "\n";
+
         lines_count_++;
-        // Close the file
-        file.close();
+
+        file.close();  // Close the file
     }
 
 private:
     std::string filename_;
-    std::string delimeter_;
+    std::string delimiter_;
     int lines_count_;
+    std::size_t heading_size_;  // Stores the size of the heading for validation
+
+    /**
+     * @brief Helper method to open the file in the appropriate mode.
+     * @param file The file stream to open.
+     * @throw std::runtime_error If the file fails to open.
+     */
+    void openFile(std::ofstream& file)
+    {
+        file.open(filename_, std::ios::out | 
+                  (lines_count_ ? std::ios::app : std::ios::trunc));
+        if (!file.is_open()) {
+            throw std::runtime_error("Error opening file: " + filename_);
+        }
+    }
 };
 
-}  // end CSV namespace
+}  // namespace CSV

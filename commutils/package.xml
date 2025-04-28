@@ -20,6 +20,10 @@
   <exec_depend>Eigen3</exec_depend>
   <exec_depend>yaml-cpp</exec_depend>
 
+  <!-- Test dependencies -->
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>gtest_ventor</test_depend>
+
   <!-- Export build information -->
   <export>
     <build_type>ament_cmake</build_type>
