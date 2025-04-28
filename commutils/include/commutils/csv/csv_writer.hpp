@@ -55,7 +55,23 @@ public:
         auto first = heading.begin();
         auto last = heading.end();
         for (; first != last; ) {
-            file << *first;
+            std::string value = *first;
+
+            // Check for special characters and escape if necessary
+            if (value.find(delimiter_) != std::string::npos || 
+                value.find('"') != std::string::npos) 
+            {
+                // Escape double quotes
+                size_t pos = 0;
+                while ((pos = value.find('"', pos)) != std::string::npos) {
+                    value.insert(pos, 1, '"');  // Add an extra double quote
+                    pos += 2;
+                }
+                // Enclose in double quotes
+                value = "\"" + value + "\"";
+            }
+
+            file << value;
             if (++first != last)
                 file << delimiter_;
         }

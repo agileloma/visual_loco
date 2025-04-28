@@ -116,7 +116,7 @@ TEST_F(CSVWriterTest, SpecialCharactersInHeadings) {
     CSVWriter writer("test_data.csv");
 
     // Define and add data headings
-    std::vector<std::string> data_headings = {"time", "data,with,commas"};
+    std::vector<std::string> data_headings = {"time", "data!with,commas"};
     writer.addDataHeading(data_headings);
 
     // Validate file content
@@ -125,7 +125,7 @@ TEST_F(CSVWriterTest, SpecialCharactersInHeadings) {
 
     std::string line;
     std::getline(infile, line);
-    EXPECT_EQ(line, "time,\"data,with,commas\"");
+    EXPECT_EQ(line, "time,\"data!with,commas\"");
 
     infile.close();
 }
