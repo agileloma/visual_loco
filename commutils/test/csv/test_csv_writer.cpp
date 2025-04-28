@@ -5,10 +5,10 @@
  * -------------------------------------------------------------------------- */
 
 /**
- *  @file   test_csv_writer.cpp
- *  @author Jun Li (junli@hit.edu.cn)
- *  @brief  Test file for CSVWriter class
- *  @date   April 28, 2025
+ * @file   test_csv_writer.cpp
+ * @author Jun Li (junli@hit.edu.cn)
+ * @brief  Test file for CSVWriter class
+ * @date   April 28, 2025
  **/
 
 #include "commutils/csv/csv_writer.hpp"

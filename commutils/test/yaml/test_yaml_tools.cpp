@@ -1,14 +1,14 @@
 /* ----------------------------------------------------------------------------
- * Copyright (c) 2021, University of Leeds and Harbin Institute of Technology.
+ * Copyright (c) 2025, Harbin Institute of Technology.
  * All Rights Reserved
  * See LICENSE for the license information
  * -------------------------------------------------------------------------- */
 
 /**
  * @file   test_yaml_tools.cpp
- * @author Jun Li (junlileeds@gmail.com)
+ * @author Jun Li (junli@hit.edu.cn)
  * @brief  Test file for yaml tools
- * @date   2021-11-12
+ * @date   April 28, 2025
  */
 
 #include "commutils/yaml/yaml_cpp_fwd.hpp"
@@ -17,14 +17,8 @@
 
 #define PRECISION 1.e-4
 
-class YamlToolsTest : public ::testing::Test
-{
-protected:
-    void SetUp() override {}
-    void TearDown() override {}
-};
 
-TEST_F(YamlToolsTest, TestingReadOptionalParameterFunction)
+TEST(YamlToolsTest, ReadOptionalParameterFunction)
 {
     double variable_parameter;
     double value_variable_parameter1 = 12.;

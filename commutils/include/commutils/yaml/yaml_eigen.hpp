@@ -5,7 +5,7 @@
  * @copyright Copyright (c) 2019, New York University and Max Planck Gesellschaft.
  * @date 2015-02-27
  * 
- * @brief Add support for eigen frm the yaml-cpp standard package.
+ * @brief Add support for eigen from the yaml-cpp standard package.
  */
 
 #pragma once
@@ -14,7 +14,6 @@
 #include <iomanip>
 #include <Eigen/Eigen>
 #include <yaml-cpp/yaml.h>
-
 
 namespace YAML {
 

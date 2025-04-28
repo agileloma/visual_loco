@@ -1,28 +1,21 @@
 /* ----------------------------------------------------------------------------
- * Copyright (c) 2021, University of Leeds and Harbin Institute of Technology.
+ * Copyright (c) 2025, Harbin Institute of Technology.
  * All Rights Reserved
  * See LICENSE for the license information
  * -------------------------------------------------------------------------- */
 
 /**
  * @file   test_yaml_eigen.cpp
- * @author Jun Li (junlileeds@gmail.com)
+ * @author Jun Li (junli@hit.edu.cn)
  * @brief  Test file for yaml-eigen functions
- * @date   2021-11-12
+ * @date   April 28, 2025
  */
 
 #include "commutils/yaml/yaml_cpp_fwd.hpp"
 
 #include <gtest/gtest.h>
 
-class YamlEigenTest : public ::testing::Test
-{
-protected:
-    void SetUp() override {}
-    void TearDown() override {}
-};
-
-TEST_F(YamlEigenTest, TestingReadEigenParameterFunction)
+TEST(YamlEigenTest, ReadEigenParameterFunction)
 {    
     Eigen::Vector4d vector_variable_parameter;
     Eigen::Vector4d value_vector_variable_parameter(1, 3, 0, 2);

@@ -1,13 +1,13 @@
 /* ----------------------------------------------------------------------------
- * Copyright (c) 2021, University of Leeds and Harbin Institute of Technology.
+ * Copyright (c) 2025, Harbin Institute of Technology.
  * All Rights Reserved
  * See LICENSE for the license information
  * -------------------------------------------------------------------------- */
 
 /**
- * @file gtest_main.cpp
- * @author Jun Li (junlileeds@gmail.com)
- * @date 2021-11-12
+ * @file   gtest_main.cpp
+ * @author Jun Li (junli@hit.edu.cn)
+ * @date   April 28, 2025
  */
 
 #include <string>
