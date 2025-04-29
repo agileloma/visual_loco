@@ -6,6 +6,7 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
+# Enable good warnings if using GCC or Clang
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -18,45 +19,59 @@ find_package(Eigen3 REQUIRED)
 find_package(unitree_sdk2 REQUIRED)
 find_package(commutils REQUIRED)
 
-
-# build the main library
+# Declare the shared library
 add_library(${PROJECT_NAME}
   SHARED
-    src/hw_robot_setting.cpp
     src/joint_controller.cpp
-    # src/${PROJECT_NAME}/hw_go2_interface.cpp
+    # src/robot_interface.cpp
 )
+# Specify the include directories
 target_include_directories(${PROJECT_NAME}
   PUBLIC 
-    $<BUILD_INTERFACE:
-      ${PROJECT_SOURCE_DIR}/include
-      ${PROJECT_SOURCE_DIR}
-    >
+    $<BUILD_INTERFACE: ${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE: include>
 )
+# Link to dependencies
 target_link_libraries(${PROJECT_NAME} 
   PUBLIC
     Eigen3::Eigen
     unitree_sdk2
-    commutils
+    commutils::commutils
 )
 
-# add_executable(go2_low_level 
-#   example/go2_low_level.cpp
+# Install header files
+install(DIRECTORY include/
+  DESTINATION include
+)
+
+# Install the target
+install(TARGETS
+  ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  INCLUDES DESTINATION include
+)
+
+# Export targets for find_package
+install(EXPORT export_${PROJECT_NAME}
+  FILE ${PROJECT_NAME}Targets.cmake
+  NAMESPACE ${PROJECT_NAME}::
+  DESTINATION share/${PROJECT_NAME}/cmake
+)
+
+# add_executable(go2_standing 
+#   demos/go2_standing.cpp
 # )
-# target_include_directories(go2_low_level
+# target_include_directories(go2_standing
 #   PUBLIC 
-#     $<BUILD_INTERFACE:
-#       ${CMAKE_CURRENT_SOURCE_DIR}/include
-#     >
-#     $<INSTALL_INTERFACE:
-#       ${CMAKE_CURRENT_SOURCE_DIR}/include
-#     >
+#     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 # )
-# target_link_libraries(go2_low_level 
+# target_link_libraries(go2_standing 
 #   PUBLIC
-#     unitree_sdk2
+#     ${PROJECT_NAME}
 # )
 
+# Export for ament
+ament_export_include_directories(include)
+ament_export_targets(export_${PROJECT_NAME})
 
 ament_package()

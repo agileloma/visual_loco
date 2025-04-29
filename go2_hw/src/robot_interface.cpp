@@ -5,21 +5,47 @@
  * -------------------------------------------------------------------------- */
 
 /**
- *  @file   hw_go2_interface.cpp
+ *  @file   robot_interface.cpp
  *  @author Jun Li (junli@hit.edu.cn)
  *  @brief  Source file for hardware interface of Go2 robot
- *  @date   April 19, 2025
+ *  @date   April 28, 2025
  **/
 
-#include "go2_hw/hw_go2_interface.hpp"
+#include "go2_hw/robot_interface.hpp"
+
+#include <commutils/yaml/yaml_cpp_fwd.hpp>
 
 
 namespace go2_hw {
 
-HwGo2Interface::HwGo2Interface(const HwRobotSetting& setting)
-    :channel_factory_(unitree::robot::ChannelFactory::Instance())
+RobotInterface::RobotInterface(const std::string& root_dir, 
+                               const std::string& cfg_file, 
+                               const std::string& hw_vars)
+    : channel_factory_(unitree::robot::ChannelFactory::Instance())
 {
-    channel_factory_->Init(0, setting.get(RobotStringParam_NetworkInterface));
+    /* read config parameters from yaml file*/
+    try {
+        YAML::Node robot_cfg = YAML::LoadFile(root_dir + cfg_file.c_str());
+        YAML::Node robot_vars = robot_cfg[hw_vars.c_str()];
+
+        YAML::readParameter(robot_vars, "network_interface", network_interface_);
+
+        YAML::readParameter(robot_vars, "timestep", timestep_);
+        YAML::readParameter(robot_vars, "torque_factor", torque_factor_);
+
+        YAML::readParameter(
+            robot_vars, "homing_configuration", homing_configuration_);
+
+        YAML::readParameter(
+            robot_vars, "cont_force_calibr_offset", cont_force_calibr_offset_);
+        YAML::readParameter(
+            robot_vars, "cont_force_calibr_factor", cont_force_calibr_factor_);
+    }
+    catch (std::runtime_error& e) {
+        std::cout << "Error reading parameter [" << e.what() << "]" << std::endl;
+    }
+
+    channel_factory_->Init(0, network_interface_);
 
     /*initialize low command*/
     low_cmd_.head()[0] = 0xFE;

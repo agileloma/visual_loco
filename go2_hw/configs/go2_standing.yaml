@@ -1,0 +1,16 @@
+################################################################################
+# robot configs
+################################################################################
+hw_robot:
+  network_interface: enp0s31f6  # replaced with the name your network card name
+
+  timestep: 0.002  # 500 Hz
+  torque_factor: 0.5
+
+  homing_configuration: [0., 0.75, -1.5, 
+                         0., 0.75, -1.5, 
+                         0., 0.75, -1.5, 
+                         0., 0.75, -1.5,]
+
+  cont_force_calibr_offset: [-0., -0., -0., -0.]  # FL FR RL RR
+  cont_force_calibr_factor: [0.5, 0.5, 0.5, 0.5]  # FL FR RL RR

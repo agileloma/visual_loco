@@ -5,15 +5,16 @@
  * -------------------------------------------------------------------------- */
 
 /**
- *  @file   hw_go2_interface.hpp
+ *  @file   robot_interface.hpp
  *  @author Jun Li (junli@hit.edu.cn)
  *  @brief  Header file for hardware interface of Go2 robot
- *  @date   April 19, 2025
+ *  @date   April 28, 2025
  **/
 
 #pragma once
 
 #include <iostream>
+#include <memory>
 
 #include <Eigen/Dense>
 
@@ -24,7 +25,6 @@
 #include <unitree/common/time/time_tool.hpp>
 #include <unitree/common/thread/thread.hpp>
 
-#include "go2_hw/hw_robot_setting.hpp"
 #include "go2_hw/joint_controller.hpp"
 
 #define TOPIC_LOWCMD "rt/lowcmd"
@@ -36,16 +36,18 @@ constexpr double VelStopF = (16000.0f);
 
 namespace go2_hw {
 
-class HwGo2Interface
+class RobotInterface
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    typedef double Scalar;
-    typedef Eigen::Matrix<Scalar, kNumJoint, 1> JointStateVector;
-    typedef Eigen::Matrix<Scalar, kDimAction*kNumJoint, 1> JointActionVector;
+    using VectorXd = Eigen::VectorXd;
+    using JointStateVector = Eigen::Matrix<double, kNumJoint, 1>;
+    using JointActionVector = Eigen::Matrix<double, kDimAction*kNumJoint, 1>;
 
-    HwGo2Interface(const HwRobotSetting& setting);
+    RobotInterface(const std::string& root_dir, 
+                   const std::string& cfg_file, 
+                   const std::string& hw_vars);
 
     void homing();
     void sleeping();
@@ -54,20 +56,26 @@ public:
 
     void applyJointActions(const Eigen::Ref<const JointActionVector>& actions);
 
-    
 private:
-    double timestep_;
+    std::string network_interface_;
 
-    /*manager for the creation and lifecycle of message channels*/
-    unitree::robot::ChannelFactory* channel_factory_; 
+    double timestep_;
+    double torque_factor_;
+
+    VectorXd homing_configuration_;
+    VectorXd cont_force_calibr_offset_, cont_force_calibr_factor_;
+
+    unitree::robot::ChannelFactory* channel_factory_;
 
     unitree_go::msg::dds_::LowCmd_ low_cmd_{};      // default init
     unitree_go::msg::dds_::LowState_ low_state_{};  // default init
 
     /*publisher*/
-    unitree::robot::ChannelPublisherPtr<unitree_go::msg::dds_::LowCmd_> lowcmd_publisher_;
+    unitree::robot::ChannelPublisherPtr<
+        unitree_go::msg::dds_::LowCmd_> lowcmd_publisher_;
     /*subscriber*/
-    unitree::robot::ChannelSubscriberPtr<unitree_go::msg::dds_::LowState_> lowstate_subscriber_;
+    unitree::robot::ChannelSubscriberPtr<
+        unitree_go::msg::dds_::LowState_> lowstate_subscriber_;
 };
 
 }  // namespace go2_hw
