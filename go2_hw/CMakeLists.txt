@@ -19,17 +19,20 @@ find_package(Eigen3 REQUIRED)
 find_package(unitree_sdk2 REQUIRED)
 find_package(commutils REQUIRED)
 
+# Get root path
+get_filename_component(ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE)
+
 # Declare the shared library
 add_library(${PROJECT_NAME}
   SHARED
     src/joint_controller.cpp
-    # src/robot_interface.cpp
+    src/robot_interface.cpp
 )
 # Specify the include directories
 target_include_directories(${PROJECT_NAME}
   PUBLIC 
-    $<BUILD_INTERFACE: ${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE: include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 # Link to dependencies
 target_link_libraries(${PROJECT_NAME} 
@@ -58,17 +61,23 @@ install(EXPORT export_${PROJECT_NAME}
   DESTINATION share/${PROJECT_NAME}/cmake
 )
 
-# add_executable(go2_standing 
-#   demos/go2_standing.cpp
-# )
-# target_include_directories(go2_standing
-#   PUBLIC 
-#     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-# )
-# target_link_libraries(go2_standing 
-#   PUBLIC
-#     ${PROJECT_NAME}
-# )
+
+
+
+add_executable(go2_standing 
+  demos/go2_standing.cpp
+)
+target_include_directories(go2_standing
+  PUBLIC 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+set_target_properties(go2_standing
+  PROPERTIES COMPILE_DEFINITIONS ROOT_PATH="${ROOT_PATH}"
+)
+target_link_libraries(go2_standing 
+  PUBLIC
+    ${PROJECT_NAME}
+)
 
 # Export for ament
 ament_export_include_directories(include)

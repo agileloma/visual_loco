@@ -11,9 +11,35 @@
  * @date   April 28, 2025
  **/
 
+#include <iostream>
+#include <string>
+
 #include "go2_hw/robot_interface.hpp"
 
-int main(argc, char **argv)
+int main(int argc, char *argv[])
 {
-    
+    std::cout << "Press Enter to continue..." << std::endl;
+    std::cin.ignore();
+
+    // Load configuration file
+    std::string cfg_file;
+    if (argc == 2) {
+        cfg_file = std::string(argv[1]);
+    }
+    else {
+        std::cout << "Usage: ./demo /<config file within root folder>" << std::endl;
+        return 1;
+    }
+
+    go2_hw::RobotInterface hw_robot(ROOT_PATH, cfg_file);
+    hw_robot.homing();
+    std::cout << "joint positions: " << hw_robot.getJointPositions().transpose() << std::endl;
+
+    while (1)
+    {
+        std::cout << "joint positions: " << hw_robot.getJointPositions().transpose() << std::endl;
+        sleep(1);
+    }
+
+    return 0;
 }
