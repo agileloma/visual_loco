@@ -5,29 +5,30 @@
  * -------------------------------------------------------------------------- */
 
 /**
- *  @file   joint_controller.cpp
- *  @author Jun Li (junli@hit.edu.cn)
- *  @brief  Source file for JointController class
- *  @date   April 19, 2025
+ * @file   joint_controller.cpp
+ * @author Jun Li (junli@hit.edu.cn)
+ * @brief  Source file for JointController class
+ * @date   April 28, 2025
  **/
 
 #include "go2_hw/joint_controller.hpp"
 
-
 namespace go2_hw {
 
-JointController::JointController(double torque_fector)
+JointController::JointController(double torque_factor)
 {
-    if (torque_fector <= 0.0) {
-        throw std::invalid_argument("Torque factor must be positive.");
+    if (torque_factor <= 0.0 || torque_factor > 1) {
+        throw std::invalid_argument(
+            "Torque factor must be positive and less than one.");
     }
 
     max_trq_ << kHipMaxTrq, kThighMaxTrq, kCalfMaxTrq,  // FL leg
                 kHipMaxTrq, kThighMaxTrq, kCalfMaxTrq,  // FR leg
                 kHipMaxTrq, kThighMaxTrq, kCalfMaxTrq,  // RL leg
                 kHipMaxTrq, kThighMaxTrq, kCalfMaxTrq;  // RR leg
-    max_trq_ *= torque_fector;
+    max_trq_ *= torque_factor;
 
+    // Initialize terms to zero
     pos_fd_term_.setZero();
     vel_fd_term_.setZero();
     trq_ff_term_.setZero();
@@ -39,13 +40,22 @@ void JointController::validateInputSizes(ConstRefJointActionVector des_actions,
                                          ConstRefJointStateVector meas_vel) const
 {
     if (des_actions.size() != kDimAction * kNumJoint) {
-        throw std::invalid_argument("Invalid size for des_actions");
+        throw std::invalid_argument(
+            "Invalid size for des_actions. Expectd: " + 
+            std::to_string(kDimAction * kNumJoint) + 
+            " Got: " + std::to_string(des_actions.size()));
     }
     if (meas_pos.size() != kNumJoint) {
-        throw std::invalid_argument("Invalid size for meas_pos");
+        throw std::invalid_argument(
+            "Invalid size for meas_pos. Expected: " + 
+            std::to_string(kNumJoint) + 
+            " Got: " + std::to_string(meas_pos.size()));
     }
     if (meas_vel.size() != kNumJoint) {
-        throw std::invalid_argument("Invalid size for meas_vel");
+        throw std::invalid_argument(
+            "Invalid size for meas_vel. Expected: " + 
+            std::to_string(kNumJoint) + 
+            " Got: " + std::to_string(meas_vel.size()));
     }
 }
 
