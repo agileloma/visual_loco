@@ -49,14 +49,14 @@ public:
     using ActionVector = Eigen::Matrix<double, kDimAction * kNumJoint, 1>;
 
     RobotInterface(const std::string& root_dir, 
-                   const std::string& cfg_file, 
-                   const std::string& hw_vars="hw_robot");
+                            const std::string& cfg_file, 
+                            const std::string& hw_vars="hw_robot");
 
     unitree_go::msg::dds_::LowCmd_& accessLowCmd() { return low_cmd_; }
     unitree_go::msg::dds_::LowState_& accessLowState() { return low_state_; }
 
-    // void homing();
-    // // void sleeping();
+    void homing();
+    void proning();
 
     // const JointController& getJointController() const;
 
@@ -115,13 +115,13 @@ public:
     // void applyJointActions(const ActionVector& actions);
 
 private:
-    // int queryMotionStatus();
-    // std::string queryServiceName(std::string form, std::string name);
+    int queryMotionStatus();
+    std::string queryServiceName(std::string form, std::string name);
 
-    // void sendLowCmd();
-    // void recvLowState(const void* message);
+    void sendLowCmd();
+    void recvLowState(const void* message);
 
-    // const StateVector& getJointPositions();
+    const StateVector& getJointPositions();
     // const StateVector& getJointVelocities();
     // const StateVector& getJointTorques();
 
@@ -140,12 +140,19 @@ private:
     StateVector q_homing_;  // represent the robot's default standing posture
     double homing_duration_{5.0};
 
+    // for proning action
+    StateVector q_proning_; // represent the robot's default sleeping posture
+    double proning_duration_{5.0};
+
     // for footend force calibration
     Vector4d cont_force_calibr_offset_, cont_force_calibr_factor_;
 
-    // StateVector joint_pos_, joint_vel_, joint_trq_;
+    StateVector joint_pos_, joint_vel_, joint_trq_;
 
+    // Init DDS channel
     unitree::robot::ChannelFactory* channel_factory_;
+    // Close sport_mode
+    unitree::robot::b2::MotionSwitcherClient* switcher_client_;
 
     unitree_go::msg::dds_::LowCmd_ low_cmd_{};      // default init
     unitree_go::msg::dds_::LowState_ low_state_{};  // default init
@@ -159,9 +166,6 @@ private:
 
     /*LowCmd send thread*/
     unitree::common::ThreadPtr lowCmd_send_thread_;
-
-    /*Close sport_mode*/
-    unitree::robot::b2::MotionSwitcherClient switcher_client_;
 };
 
 }  // namespace go2_hw

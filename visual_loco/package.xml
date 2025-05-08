@@ -3,7 +3,7 @@
   schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>visual_loco</name>
-  <version>0.0.1</version>
+  <version>0.1.0</version>
   <description>
     Metapackage to aggregate all packages in visual_loco project.
   </description>
@@ -14,7 +14,7 @@
 
   <depend>go2_description</depend>
   <depend>commutils</depend>
-  <edepend>go2_hw</depend>
+  <depend>go2_hw</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

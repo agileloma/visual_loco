@@ -2,23 +2,22 @@
 Locomotion with visual information
 
 # dependencies
-1. unitree_sdk2
-install unitree_sdk2 to a specified directory:
-
-```bash
-mkdir build
-cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree
-sudo make install
-```
-Note that if you install the library to other places other than `/opt/unitree`, 
-you need to make sure the path is added to "${CMAKE_PREFIX_PATH}" so that cmake 
-can find it with "find_package()".
-
-2. yaml-cpp
+1. yaml-cpp
 install yaml-cpp to the system directory:
 ```
 sudo apt update
 sudo apt install libyaml-cpp-dev
 ```
 
+3. ros2 packages
+install necessary ros2 packages
+```
+sudo apt install ros-foxy-joint-state-publisher-gui
+```
+
+# Run demos
+## Show urdf model of go2 in Rviz
+```
+source install/setup.bash
+ros2 launch go2_description view_model.launch.py
+```
