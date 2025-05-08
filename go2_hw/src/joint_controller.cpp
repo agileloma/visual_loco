@@ -35,9 +35,9 @@ JointController::JointController(double torque_factor)
     des_trq_.setZero();
 }
 
-void JointController::validateInputSizes(ConstRefJointActionVector des_actions, 
-                                         ConstRefJointStateVector meas_pos, 
-                                         ConstRefJointStateVector meas_vel) const
+void JointController::validateInputSizes(ConstRefActionVector des_actions, 
+                                         ConstRefStateVector meas_pos, 
+                                         ConstRefStateVector meas_vel) const
 {
     if (des_actions.size() != kDimAction * kNumJoint) {
         throw std::invalid_argument(
@@ -59,34 +59,34 @@ void JointController::validateInputSizes(ConstRefJointActionVector des_actions,
     }
 }
 
-const JointController::JointStateVector& 
+const JointController::StateVector& 
 JointController::getPositionFeedbackTerm() const 
 {
     return pos_fd_term_; 
 }
 
-const JointController::JointStateVector& 
+const JointController::StateVector& 
 JointController::getVelocityFeedbackTerm() const 
 {
     return vel_fd_term_; 
 }
 
-const JointController::JointStateVector& 
+const JointController::StateVector& 
 JointController::getTorqueFeedforwardTerm() const 
 {
     return trq_ff_term_; 
 }
 
-const JointController::JointStateVector& 
+const JointController::StateVector& 
 JointController::getDesiredJointTorques() const 
 {
     return des_trq_; 
 }
 
-const JointController::JointStateVector& 
-JointController::computeJointTorques(ConstRefJointActionVector des_actions, 
-                                     ConstRefJointStateVector meas_pos, 
-                                     ConstRefJointStateVector meas_vel)
+const JointController::StateVector& 
+JointController::computeJointTorques(ConstRefActionVector des_actions, 
+                                     ConstRefStateVector meas_pos, 
+                                     ConstRefStateVector meas_vel)
 {
     validateInputSizes(des_actions, meas_pos, meas_vel);
 
