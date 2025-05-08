@@ -13,7 +13,6 @@
 
 #include "go2_hw/robot_interface.hpp"
 
-#include <unistd.h>
 #include <cmath>
 
 #include <commutils/yaml/yaml_cpp_fwd.hpp>
@@ -59,286 +58,386 @@ uint32_t crc32_core(uint32_t* ptr, uint32_t len)
 RobotInterface::RobotInterface(const std::string& root_dir, 
                                const std::string& cfg_file, 
                                const std::string& hw_vars)
-    : controller_(torque_factor_), 
-      channel_factory_(unitree::robot::ChannelFactory::Instance())
 {
-    /* read config parameters from yaml file*/
-    try {
-        YAML::Node robot_cfg = YAML::LoadFile(root_dir + cfg_file.c_str());
-        YAML::Node robot_vars = robot_cfg[hw_vars.c_str()];
+//     /* read config parameters from yaml file*/
+//     try {
+//         YAML::Node robot_cfg = YAML::LoadFile(root_dir + cfg_file.c_str());
+//         YAML::Node robot_vars = robot_cfg[hw_vars.c_str()];
 
-        YAML::readParameter(robot_vars, "network_interface", network_interface_);
+//         YAML::readParameter(robot_vars, "timestep", timestep_);
+//         // YAML::readParameter(robot_vars, "torque_factor", torque_factor_);
 
-        YAML::readParameter(robot_vars, "timestep", timestep_);
-        YAML::readParameter(robot_vars, "torque_factor", torque_factor_);
+//         YAML::readParameter(robot_vars, "homing_posture", q_homing_);
 
-        YAML::readParameter(
-            robot_vars, "homing_configuration", q_homing_);
+//         YAML::readParameter(
+//             robot_vars, "cont_force_calibr_offset", cont_force_calibr_offset_);
+//         YAML::readParameter(
+//             robot_vars, "cont_force_calibr_factor", cont_force_calibr_factor_);
+//     }
+//     catch (std::runtime_error& e) {
+//         std::cout << "Error reading parameter [" << e.what() << "]" << std::endl;
+//     }
+// std::cout << "after YAML" << std::endl;
+//     channel_factory_ = unitree::robot::ChannelFactory::Instance();
+//     channel_factory_->Init(0);
+// std::cout << "after channel_factory_->Init(0);" << std::endl;
+//     joint_pos_min_ << kHipMinPos, kThighMinPos, kCalfMinPos, 
+//                       kHipMinPos, kThighMinPos, kCalfMinPos,
+//                       kHipMinPos, kThighMinPos, kCalfMinPos,
+//                       kHipMinPos, kThighMinPos, kCalfMinPos;
+//     joint_pos_max_ << kHipMaxPos, kThighMaxPos, kCalfMaxPos,
+//                       kHipMaxPos, kThighMaxPos, kCalfMaxPos,
+//                       kHipMaxPos, kThighMaxPos, kCalfMaxPos,
+//                       kHipMaxPos, kThighMaxPos, kCalfMaxPos;
 
-        YAML::readParameter(
-            robot_vars, "cont_force_calibr_offset", cont_force_calibr_offset_);
-        YAML::readParameter(
-            robot_vars, "cont_force_calibr_factor", cont_force_calibr_factor_);
-    }
-    catch (std::runtime_error& e) {
-        std::cout << "Error reading parameter [" << e.what() << "]" << std::endl;
-    }
+//     step_counter_ = 0;
 
-    channel_factory_->Init(0, network_interface_);
+//     /*initialize low command*/
+//     low_cmd_.head()[0] = 0xFE;
+//     low_cmd_.head()[1] = 0xEF;
+//     low_cmd_.level_flag() = 0xFF;
+//     low_cmd_.gpio() = 0;
 
-    joint_pos_min_ << kHipMinPos, kThighMinPos, kCalfMinPos, 
-                      kHipMinPos, kThighMinPos, kCalfMinPos,
-                      kHipMinPos, kThighMinPos, kCalfMinPos,
-                      kHipMinPos, kThighMinPos, kCalfMinPos;
-    joint_pos_max_ << kHipMaxPos, kThighMaxPos, kCalfMaxPos,
-                      kHipMaxPos, kThighMaxPos, kCalfMaxPos,
-                      kHipMaxPos, kThighMaxPos, kCalfMaxPos,
-                      kHipMaxPos, kThighMaxPos, kCalfMaxPos;
+//     for(int i = 0; i < kNumJoint; i++) {
+//         low_cmd_.motor_cmd()[i].mode() = (0x01);  // motor switch to servo mode
+//         low_cmd_.motor_cmd()[i].q() = (PosStopF);
+//         low_cmd_.motor_cmd()[i].kp() = (0);
+//         low_cmd_.motor_cmd()[i].dq() = (VelStopF);
+//         low_cmd_.motor_cmd()[i].kd() = (0);
+//         low_cmd_.motor_cmd()[i].tau() = (0);
+//     }
 
-    step_counter_ = 0;
+//     /*create publisher*/
+//     lowcmd_publisher_.reset(
+//         new unitree::robot::ChannelPublisher<
+//             unitree_go::msg::dds_::LowCmd_>(TOPIC_LOWCMD));
+//     lowcmd_publisher_->InitChannel();
 
-    /*initialize low command*/
-    low_cmd_.head()[0] = 0xFE;
-    low_cmd_.head()[1] = 0xEF;
-    low_cmd_.level_flag() = 0xFF;
-    low_cmd_.gpio() = 0;
+//     /*create subscriber*/
+//     lowstate_subscriber_.reset(
+//         new unitree::robot::ChannelSubscriber<
+//             unitree_go::msg::dds_::LowState_>(TOPIC_LOWSTATE));
+//     lowstate_subscriber_->InitChannel(
+//         std::bind(&RobotInterface::recvLowState, this, std::placeholders::_1), 1);
 
-    for(int i = 0; i < kNumJoint; i++) {
-        low_cmd_.motor_cmd()[i].mode() = (0x01);  // motor switch to servo mode
-        low_cmd_.motor_cmd()[i].q() = (PosStopF);
-        low_cmd_.motor_cmd()[i].kp() = (0);
-        low_cmd_.motor_cmd()[i].dq() = (VelStopF);
-        low_cmd_.motor_cmd()[i].kd() = (0);
-        low_cmd_.motor_cmd()[i].tau() = (0);
-    }
+//     /*loop publishing*/
+//     lowCmd_send_thread_ = unitree::common::CreateRecurrentThreadEx(
+//         "writebasiccmd", UT_CPU_ID_NONE, 2000, &RobotInterface::sendLowCmd, this);
 
-    /*create publisher*/
-    lowcmd_publisher_.reset(
-        new unitree::robot::ChannelPublisher<
-            unitree_go::msg::dds_::LowCmd_>(TOPIC_LOWCMD));
-    lowcmd_publisher_->InitChannel();
+//     /*Set MotionSwitcherClient*/
+//     switcher_client_.SetTimeout(10.0f);
 
-    /*create subscriber*/
-    lowstate_subscriber_.reset(
-        new unitree::robot::ChannelSubscriber<
-            unitree_go::msg::dds_::LowState_>(TOPIC_LOWSTATE));
-    lowstate_subscriber_->InitChannel(
-        std::bind(&RobotInterface::recvLowState, this, std::placeholders::_1), 1);
-
-    /*loop publishing*/
-    lowCmd_send_thread_ = unitree::common::CreateRecurrentThreadEx(
-        "writebasiccmd", UT_CPU_ID_NONE, 2000, &RobotInterface::sendLowCmd, this);
+//     std::cout << "after switcher_client_.SetTimeout(10.0f)" << std::endl;
+//     switcher_client_.Init();
+//     /*Shut down motion control related service*/
+//     while (queryMotionStatus()) {
+//         std::cout << "Try to deactivate the motion control related service."
+//                   << std::endl;
+//         int32_t ret = switcher_client_.ReleaseMode();
+//         if (ret == 0) {
+//             std::cout << "ReleaseMode succeeded." << std::endl;
+//         }
+//         else {
+//             std::cout << "ReleaseMode failed. Error code: " << ret << std::endl;
+//         }
+//         sleep(5);
+//     }
+// std::cout << "after MotionSwitcherClient" << std::endl;
 }
 
-void RobotInterface::sendLowCmd() 
-{
-    low_cmd_.crc() = crc32_core(
-        (uint32_t *)&low_cmd_, (sizeof(unitree_go::msg::dds_::LowCmd_)>>2)-1);
+// int RobotInterface::queryMotionStatus()
+// {
+//     std::string robot_form, motion_name;
+//     int motion_status;
+//     int32_t ret = switcher_client_.CheckMode(robot_form, motion_name);
+//     if (ret == 0) {
+//         std::cout << "CheckMode succeeded." << std::endl;
+//     }
+//     else {
+//         std::cout << "CheckMode failed. Error code: " << ret << std::endl;
+//     }
 
-    lowcmd_publisher_->Write(low_cmd_);
-    // std::cout << "sendLowCmd() is called." << std::endl;
-}
+//     if (motion_name.empty()) {
+//         std::cout << "The motion control related service is deactivated." 
+//                   << std::endl;
+//         motion_status = 0;
+//     }
+//     else {
+//         std::string service_name = queryServiceName(robot_form, motion_name);
+//         std::cout << "Service: " << service_name << " is activated." 
+//                   << std::endl;
+//         motion_status = 1;
+//     }
+//     return motion_status;
+// }
 
-void RobotInterface::recvLowState(const void* message)
-{
-    low_state_ = *(unitree_go::msg::dds_::LowState_*)message;
-    // std::cout << "recvLowState() is called." << std::endl;
-}
+// std::string RobotInterface::queryServiceName(std::string form, std::string name)
+// {
+//     if (form == "0") {
+//         if (name == "normal")
+//             return "sport_mode";
+//         if (name == "ai")
+//             return "ai_sport";
+//         if (name == "advanced")
+//             return "advanced_sport";
+//     }
+//     else {
+//         if (name == "ai-w")
+//             return "wheeled_sport(go2w)";
+//         if (name == "normal-w")
+//             return "wheeled_sport(b2w)";
+//     }
 
-const RobotInterface::StateVector& RobotInterface::getJointPositions()
-{
-    joint_pos_ << low_state_.motor_state()[0].q(),
-                  low_state_.motor_state()[1].q(),
-                  low_state_.motor_state()[2].q(),
-                  low_state_.motor_state()[3].q(),
-                  low_state_.motor_state()[4].q(),
-                  low_state_.motor_state()[5].q(),
-                  low_state_.motor_state()[6].q(),
-                  low_state_.motor_state()[7].q(),
-                  low_state_.motor_state()[8].q(),
-                  low_state_.motor_state()[9].q(),
-                  low_state_.motor_state()[10].q(),
-                  low_state_.motor_state()[11].q();
-    return joint_pos_;
-}
+//     return "";
+// }
 
-const RobotInterface::StateVector& RobotInterface::getJointVelocities()
-{
-    joint_vel_ << low_state_.motor_state()[0].dq(),
-                  low_state_.motor_state()[1].dq(),
-                  low_state_.motor_state()[2].dq(),
-                  low_state_.motor_state()[3].dq(),
-                  low_state_.motor_state()[4].dq(),
-                  low_state_.motor_state()[5].dq(),
-                  low_state_.motor_state()[6].dq(),
-                  low_state_.motor_state()[7].dq(),
-                  low_state_.motor_state()[8].dq(),
-                  low_state_.motor_state()[9].dq(),
-                  low_state_.motor_state()[10].dq(),
-                  low_state_.motor_state()[11].dq();
-    return joint_vel_;
-}
+// void RobotInterface::sendLowCmd() 
+// {
+//     low_cmd_.crc() = crc32_core(
+//         (uint32_t *)&low_cmd_, (sizeof(unitree_go::msg::dds_::LowCmd_)>>2)-1);
 
-const RobotInterface::StateVector& RobotInterface::getJointTorques()
-{
-    joint_trq_ << low_state_.motor_state()[0].tau_est(),
-                  low_state_.motor_state()[1].tau_est(),
-                  low_state_.motor_state()[2].tau_est(),
-                  low_state_.motor_state()[3].tau_est(),
-                  low_state_.motor_state()[4].tau_est(),
-                  low_state_.motor_state()[5].tau_est(),
-                  low_state_.motor_state()[6].tau_est(),
-                  low_state_.motor_state()[7].tau_est(),
-                  low_state_.motor_state()[8].tau_est(),
-                  low_state_.motor_state()[9].tau_est(),
-                  low_state_.motor_state()[10].tau_est(),
-                  low_state_.motor_state()[11].tau_est();
-    return joint_trq_;
-}
+//     lowcmd_publisher_->Write(low_cmd_);
+//     std::cout << "sendLowCmd() is called." << std::endl;
+// }
 
-void RobotInterface::homing()
-{
-    bool is_valid = false;
-    is_valid = (q_homing_.array() >= joint_pos_min_.array()).all() && 
-               (q_homing_.array() <= joint_pos_max_.array()).all();
+// void RobotInterface::recvLowState(const void* message)
+// {
+//     low_state_ = *(unitree_go::msg::dds_::LowState_*)message;
+//     std::cout << "recvLowState() is called." << std::endl;
+// }
 
-    assert(is_valid && "homing positions are not valid!");
+// const RobotInterface::StateVector& RobotInterface::getJointPositions()
+// {
+//     joint_pos_ << low_state_.motor_state()[FR_H].q(),
+//                   low_state_.motor_state()[FR_T].q(),
+//                   low_state_.motor_state()[FR_C].q(),
+//                   low_state_.motor_state()[FL_H].q(),
+//                   low_state_.motor_state()[FL_T].q(),
+//                   low_state_.motor_state()[FL_C].q(),
+//                   low_state_.motor_state()[RR_H].q(),
+//                   low_state_.motor_state()[RR_T].q(),
+//                   low_state_.motor_state()[RR_C].q(),
+//                   low_state_.motor_state()[RL_H].q(),
+//                   low_state_.motor_state()[RL_T].q(),
+//                   low_state_.motor_state()[RL_C].q();
+//     return joint_pos_;
+//     low_state_.motor_state()[RL_H].q(),
+//     low_state_.motor_state()[RL_T].q(),
+//     low_state_.motor_state()[RL_C].q();
+// return joint_pos_;
+// }
 
-    int steps = static_cast<int>(homing_duration_ / timestep_);
-    int counter = 0;
-    double rate = 0.0;
-    StateVector q_init = getJointPositions();
-    // StateVector q_prev = q_init;
-    StateVector q_des, dq_des;
+// const RobotInterface::StateVector& RobotInterface::getJointVelocities()
+// {
+// joint_vel_ << low_state_.motor_state()[FR_H].dq(),
+//     low_state_.motor_state()[FR_T].dq(),
+//     low_state_.motor_state()[FR_C].dq(),
+//     low_state_.motor_state()[FL_H].dq(),
+//     low_state_.motor_state()[FL_T].dq(),
+//     low_state_.motor_state()[FL_C].dq(),
+//     low_state_.motor_state()[RR_H].dq(),
+//     low_state_.motor_state()[RR_T].dq(),
+//     low_state_.motor_state()[RR_C].dq(),
+//     low_state_.motor_state()[RL_H].dq(),
+//     low_state_.motor_state()[RL_T].dq(),
+//     low_state_.motor_state()[RL_C].dq();
+// return joint_vel_;
+// }
 
-    std::cout << "q_homing_: " << q_homing_.transpose() << std::endl;
+// const RobotInterface::StateVector& RobotInterface::getJointTorques()
+// {
+// joint_trq_ << low_state_.motor_state()[FR_H].tau_est(),
+//     low_state_.motor_state()[FR_T].tau_est(),
+//     low_state_.motor_state()[FR_C].tau_est(),
+//     low_state_.motor_state()[FL_H].tau_est(),
+//     low_state_.motor_state()[FL_T].tau_est(),
+//     low_state_.motor_state()[FL_C].tau_est(),
+//     low_state_.motor_state()[RR_H].tau_est(),
+//     low_state_.motor_state()[RR_T].tau_est(),
+//     low_state_.motor_state()[RR_C].tau_est(),
+//     low_state_.motor_state()[RL_H].tau_est(),
+//     low_state_.motor_state()[RL_T].tau_est(),
+//     low_state_.motor_state()[RL_C].tau_est();
+// return joint_trq_;
+// }}
 
-    // // Gravity compensation
-    // low_cmd_.motor_cmd()[0].tau() = -2.50f;  // FR hip
-    // low_cmd_.motor_cmd()[3].tau() = +2.50f;  // FL hip 
-    // low_cmd_.motor_cmd()[6].tau() = -2.50f;  // RR hip
-    // low_cmd_.motor_cmd()[9].tau() = +2.50f;  // RL hip
+// const RobotInterface::StateVector& RobotInterface::getJointVelocities()
+// {
+//     joint_vel_ << low_state_.motor_state()[FR_H].dq(),
+//                   low_state_.motor_state()[FR_T].dq(),
+//                   low_state_.motor_state()[FR_C].dq(),
+//                   low_state_.motor_state()[FL_H].dq(),
+//                   low_state_.motor_state()[FL_T].dq(),
+//                   low_state_.motor_state()[FL_C].dq(),
+//                   low_state_.motor_state()[RR_H].dq(),
+//                   low_state_.motor_state()[RR_T].dq(),
+//                   low_state_.motor_state()[RR_C].dq(),
+//                   low_state_.motor_state()[RL_H].dq(),
+//                   low_state_.motor_state()[RL_T].dq(),
+//                   low_state_.motor_state()[RL_C].dq();
+//     return joint_vel_;
+// }
 
-    while (counter <= steps) {
-        counter++;
+// const RobotInterface::StateVector& RobotInterface::getJointTorques()
+// {
+//     joint_trq_ << low_state_.motor_state()[FR_H].tau_est(),
+//                   low_state_.motor_state()[FR_T].tau_est(),
+//                   low_state_.motor_state()[FR_C].tau_est(),
+//                   low_state_.motor_state()[FL_H].tau_est(),
+//                   low_state_.motor_state()[FL_T].tau_est(),
+//                   low_state_.motor_state()[FL_C].tau_est(),
+//                   low_state_.motor_state()[RR_H].tau_est(),
+//                   low_state_.motor_state()[RR_T].tau_est(),
+//                   low_state_.motor_state()[RR_C].tau_est(),
+//                   low_state_.motor_state()[RL_H].tau_est(),
+//                   low_state_.motor_state()[RL_T].tau_est(),
+//                   low_state_.motor_state()[RL_C].tau_est();
+//     return joint_trq_;
+// }
 
-        // first, get record initial position
-        if (counter >= 0 && counter <= 10) {
-            q_init = getJointPositions();
-            q_des = q_init;
+// void RobotInterface::homing()
+// {
+//     bool is_valid = false;
+//     is_valid = (q_homing_.array() >= joint_pos_min_.array()).all() && 
+//                (q_homing_.array() <= joint_pos_max_.array()).all();
 
-            std::cout << "q_init: " << q_init.transpose() << std::endl;
+//     assert(is_valid && "homing positions are not valid!");
 
-            // Set motor control gains
-            // low_cmd_.motor_cmd()[0].kp() = 5.0;
-            // low_cmd_.motor_cmd()[0].kd() = 1.0;
-            // low_cmd_.motor_cmd()[1].kp() = 5.0;
-            // low_cmd_.motor_cmd()[1].kd() = 1.0;
-            // low_cmd_.motor_cmd()[2].kp() = 5.0;
-            // low_cmd_.motor_cmd()[2].kd() = 1.0;
+//     int steps = static_cast<int>(homing_duration_ / timestep_);
+//     int counter = 0;
+//     double rate = 0.0;
+//     StateVector q_init = getJointPositions();
+//     // StateVector q_prev = q_init;
+//     StateVector q_des, dq_des;
 
-            // low_cmd_.motor_cmd()[3].kp() = 5.0;
-            // low_cmd_.motor_cmd()[3].kd() = 0.1;
-            // low_cmd_.motor_cmd()[4].kp() = 5.0;
-            // low_cmd_.motor_cmd()[4].kd() = 0.1;
-            // low_cmd_.motor_cmd()[5].kp() = 5.0;
-            // low_cmd_.motor_cmd()[5].kd() = 0.1;
+//     std::cout << "q_homing_: " << q_homing_.transpose() << std::endl;
 
-            // low_cmd_.motor_cmd()[6].kp() = 5.0;
-            // low_cmd_.motor_cmd()[6].kd() = 0.1;
-            // low_cmd_.motor_cmd()[7].kp() = 5.0;
-            // low_cmd_.motor_cmd()[7].kd() = 0.1;
-            // low_cmd_.motor_cmd()[8].kp() = 5.0;
-            // low_cmd_.motor_cmd()[8].kd() = 0.1;
+//     // // Gravity compensation
+//     // low_cmd_.motor_cmd()[0].tau() = -2.50f;  // FR hip
+//     // low_cmd_.motor_cmd()[3].tau() = +2.50f;  // FL hip 
+//     // low_cmd_.motor_cmd()[6].tau() = -2.50f;  // RR hip
+//     // low_cmd_.motor_cmd()[9].tau() = +2.50f;  // RL hip
 
-            // low_cmd_.motor_cmd()[9].kp() = 5.0;
-            // low_cmd_.motor_cmd()[9].kd() = 0.1;
-            // low_cmd_.motor_cmd()[10].kp() = 5.0;
-            // low_cmd_.motor_cmd()[10].kd() = 0.1;
-            // low_cmd_.motor_cmd()[11].kp() = 5.0;
-            // low_cmd_.motor_cmd()[11].kd() = 0.1;
-        }
-        else {
-            rate = static_cast<double>(counter) / static_cast<double>(steps);
-            double scale = 0.5 * (1.0 - std::cos(M_PI * rate));
+//     while (counter <= steps) {
+//         counter++;
+
+//         // first, get record initial position
+//         if (counter >= 0 && counter <= 10) {
+//             q_init = getJointPositions();
+//             q_des = q_init;
+
+//             std::cout << "q_init: " << q_init.transpose() << std::endl;
+
+//             // Set motor control gains
+//             // low_cmd_.motor_cmd()[0].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[0].kd() = 1.0;
+//             // low_cmd_.motor_cmd()[1].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[1].kd() = 1.0;
+//             // low_cmd_.motor_cmd()[2].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[2].kd() = 1.0;
+
+//             // low_cmd_.motor_cmd()[3].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[3].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[4].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[4].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[5].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[5].kd() = 0.1;
+
+//             // low_cmd_.motor_cmd()[6].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[6].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[7].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[7].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[8].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[8].kd() = 0.1;
+
+//             // low_cmd_.motor_cmd()[9].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[9].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[10].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[10].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[11].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[11].kd() = 0.1;
+//         }
+//         else {
+//             rate = static_cast<double>(counter) / static_cast<double>(steps);
+//             double scale = 0.5 * (1.0 - std::cos(M_PI * rate));
     
-            // Calculate the desired joint positions and velocities
-            q_des = q_init + scale * (q_homing_ - q_init);
-            // dq_des = (q_des - q_prev) / timestep_;
+//             // Calculate the desired joint positions and velocities
+//             q_des = q_init + scale * (q_homing_ - q_init);
+//             // dq_des = (q_des - q_prev) / timestep_;
 
-            std::cout << "q_des: " << q_des.transpose() << std::endl;
-            std::cout << "q_act: " << getJointPositions().transpose() << std::endl;
+//             std::cout << "q_des: " << q_des.transpose() << std::endl;
+//             std::cout << "q_act: " << getJointPositions().transpose() << std::endl;
 
-            // Update the previous desired positions
-            // q_prev = q_des;  
+//             // Update the previous desired positions
+//             // q_prev = q_des;  
     
-            // // Set motor control gains
-            // low_cmd_.motor_cmd()[0].kp() = 15.0;
-            // low_cmd_.motor_cmd()[0].kd() = 1.0;
-            // low_cmd_.motor_cmd()[1].kp() = 15.0;
-            // low_cmd_.motor_cmd()[1].kd() = 1.0;
-            // low_cmd_.motor_cmd()[2].kp() = 25.0;
-            // low_cmd_.motor_cmd()[2].kd() = 1.0;
+//             // // Set motor control gains
+//             // low_cmd_.motor_cmd()[0].kp() = 15.0;
+//             // low_cmd_.motor_cmd()[0].kd() = 1.0;
+//             // low_cmd_.motor_cmd()[1].kp() = 15.0;
+//             // low_cmd_.motor_cmd()[1].kd() = 1.0;
+//             // low_cmd_.motor_cmd()[2].kp() = 25.0;
+//             // low_cmd_.motor_cmd()[2].kd() = 1.0;
     
-            // low_cmd_.motor_cmd()[3].kp() = 5.0;
-            // low_cmd_.motor_cmd()[3].kd() = 0.1;
-            // low_cmd_.motor_cmd()[4].kp() = 5.0;
-            // low_cmd_.motor_cmd()[4].kd() = 0.1;
-            // low_cmd_.motor_cmd()[5].kp() = 5.0;
-            // low_cmd_.motor_cmd()[5].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[3].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[3].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[4].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[4].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[5].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[5].kd() = 0.1;
     
-            // low_cmd_.motor_cmd()[6].kp() = 5.0;
-            // low_cmd_.motor_cmd()[6].kd() = 0.1;
-            // low_cmd_.motor_cmd()[7].kp() = 5.0;
-            // low_cmd_.motor_cmd()[7].kd() = 0.1;
-            // low_cmd_.motor_cmd()[8].kp() = 5.0;
-            // low_cmd_.motor_cmd()[8].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[6].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[6].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[7].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[7].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[8].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[8].kd() = 0.1;
     
-            // low_cmd_.motor_cmd()[9].kp() = 5.0;
-            // low_cmd_.motor_cmd()[9].kd() = 0.1;
-            // low_cmd_.motor_cmd()[10].kp() = 5.0;
-            // low_cmd_.motor_cmd()[10].kd() = 0.1;
-            // low_cmd_.motor_cmd()[11].kp() = 5.0;
-            // low_cmd_.motor_cmd()[11].kd() = 0.1;
-        }
+//             // low_cmd_.motor_cmd()[9].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[9].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[10].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[10].kd() = 0.1;
+//             // low_cmd_.motor_cmd()[11].kp() = 5.0;
+//             // low_cmd_.motor_cmd()[11].kd() = 0.1;
+//         }
 
-        // // Set desired joint positions and velocities
-        // for (int i = 0; i < kNumJoint; ++i) {
-        //     low_cmd_.motor_cmd()[i].q() = q_des[i];
-        //     low_cmd_.motor_cmd()[i].dq() = 0.0;
-        //     // low_cmd_.motor_cmd()[i].dq() = dq_des[i];
-        // }
-        low_cmd_.motor_cmd()[0].q() = q_des[0];
-        low_cmd_.motor_cmd()[0].dq() = 0.0;
-        low_cmd_.motor_cmd()[0].kp() = 5.0;
-        low_cmd_.motor_cmd()[0].kd() = 1.0;
-        low_cmd_.motor_cmd()[0].tau() = 0.0;
+//         // // Set desired joint positions and velocities
+//         // for (int i = 0; i < kNumJoint; ++i) {
+//         //     low_cmd_.motor_cmd()[i].q() = q_des[i];
+//         //     low_cmd_.motor_cmd()[i].dq() = 0.0;
+//         //     // low_cmd_.motor_cmd()[i].dq() = dq_des[i];
+//         // }
+//         low_cmd_.motor_cmd()[0].q() = q_des[0];
+//         low_cmd_.motor_cmd()[0].dq() = 0.0;
+//         low_cmd_.motor_cmd()[0].kp() = 5.0;
+//         low_cmd_.motor_cmd()[0].kd() = 1.0;
+//         low_cmd_.motor_cmd()[0].tau() = 0.0;
 
-        low_cmd_.motor_cmd()[1].q() = q_des[1];
-        low_cmd_.motor_cmd()[1].dq() = 0.0;
-        low_cmd_.motor_cmd()[1].kp() = 5.0;
-        low_cmd_.motor_cmd()[1].kd() = 1.0;
-        low_cmd_.motor_cmd()[1].tau() = 0.0;
+//         low_cmd_.motor_cmd()[1].q() = q_des[1];
+//         low_cmd_.motor_cmd()[1].dq() = 0.0;
+//         low_cmd_.motor_cmd()[1].kp() = 5.0;
+//         low_cmd_.motor_cmd()[1].kd() = 1.0;
+//         low_cmd_.motor_cmd()[1].tau() = 0.0;
 
-        low_cmd_.motor_cmd()[2].q() = q_des[2];
-        low_cmd_.motor_cmd()[2].dq() = 0.0;
-        low_cmd_.motor_cmd()[2].kp() = 25.0;
-        low_cmd_.motor_cmd()[2].kd() = 1.0;
-        low_cmd_.motor_cmd()[2].tau() = 0.0;
+//         low_cmd_.motor_cmd()[2].q() = q_des[2];
+//         low_cmd_.motor_cmd()[2].dq() = 0.0;
+//         low_cmd_.motor_cmd()[2].kp() = 25.0;
+//         low_cmd_.motor_cmd()[2].kd() = 1.0;
+//         low_cmd_.motor_cmd()[2].tau() = 0.0;
 
-        // std::cout << "q_des: " << q_des.transpose() << std::endl;
-        // std::cout << "q_act: " << getJointPositions().transpose() << std::endl;
+//         // std::cout << "q_des: " << q_des.transpose() << std::endl;
+//         // std::cout << "q_act: " << getJointPositions().transpose() << std::endl;
 
-        sendLowCmd();
+//         sendLowCmd();
 
-        usleep(timestep_ * USECS_PER_SEC);
-    }
+//         usleep(timestep_ * USECS_PER_SEC);
+//     }
 
-    StateVector q_end = getJointPositions();
-    assert(q_end.isApprox(q_homing_, 1e-1) && "Homing failed!");
+//     StateVector q_end = getJointPositions();
+//     assert(q_end.isApprox(q_homing_, 1e-1) && "Homing failed!");
 
-    std::cout << "Finish moving to homing position.\n" << std::endl;
-}
+//     std::cout << "Finish moving to homing position.\n" << std::endl;
+// }
 
 // const JointController& RobotInterface::getJointController() const 
 // {

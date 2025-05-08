@@ -24,6 +24,7 @@
 #include <unitree/idl/go2/LowCmd_.hpp>
 #include <unitree/common/time/time_tool.hpp>
 #include <unitree/common/thread/thread.hpp>
+#include <unitree/robot/b2/motion_switcher/motion_switcher_client.hpp>
 
 #include "go2_hw/robot_constants.hpp"
 #include "go2_hw/joint_controller.hpp"
@@ -45,33 +46,16 @@ public:
     using Vector4d = Eigen::Vector4d;
     using VectorXd = Eigen::VectorXd;
     using StateVector = Eigen::Matrix<double, kNumJoint, 1>;
-    using ActionVector = Eigen::Matrix<double, kDimAction*kNumJoint, 1>;
+    using ActionVector = Eigen::Matrix<double, kDimAction * kNumJoint, 1>;
 
     RobotInterface(const std::string& root_dir, 
                    const std::string& cfg_file, 
                    const std::string& hw_vars="hw_robot");
 
-    // void setGravitycompensation() {
-    //     low_cmd_.motor_cmd()[0].tau() = -2.50f;  // FR hip
-    //     low_cmd_.motor_cmd()[3].tau() = +2.50f;  // FL hip 
-    //     low_cmd_.motor_cmd()[6].tau() = -2.50f;  // RR hip
-    //     low_cmd_.motor_cmd()[9].tau() = +2.50f;  // RL hip
-
-    //     // low_cmd_.motor_cmd()[0].tau() = -0.65f;  // FR hip
-    //     // low_cmd_.motor_cmd()[3].tau() = +0.65f;  // FL hip 
-    //     // low_cmd_.motor_cmd()[6].tau() = -0.65f;  // RR hip
-    //     // low_cmd_.motor_cmd()[9].tau() = +0.65f;  // RL hip
-    // }
-
-    // void getFRhipTorque() {
-    //     std::cout << "low_cmd_.motor_cmd()[0].tau(): " << low_cmd_.motor_cmd()[0].tau() << std::endl;
-    //     std::cout << "ow_state_.motor_state()[0].tau_est(): " << low_state_.motor_state()[0].tau_est() << std::endl;
-    // }
-
     unitree_go::msg::dds_::LowCmd_& accessLowCmd() { return low_cmd_; }
     unitree_go::msg::dds_::LowState_& accessLowState() { return low_state_; }
 
-    void homing();
+    // void homing();
     // // void sleeping();
 
     // const JointController& getJointController() const;
@@ -131,32 +115,35 @@ public:
     // void applyJointActions(const ActionVector& actions);
 
 private:
-    void sendLowCmd();
-    void recvLowState(const void* message);
+    // int queryMotionStatus();
+    // std::string queryServiceName(std::string form, std::string name);
 
-    const StateVector& getJointPositions();
-    const StateVector& getJointVelocities();
-    const StateVector& getJointTorques();
+    // void sendLowCmd();
+    // void recvLowState(const void* message);
 
-    std::string network_interface_;
+    // const StateVector& getJointPositions();
+    // const StateVector& getJointVelocities();
+    // const StateVector& getJointTorques();
 
     double timestep_;
 
     int step_counter_;
 
-    // for joint control
-    double torque_factor_{1.0};
-    JointController controller_;
+    // // for joint PD control
+    // double torque_factor_{1.0};
+    // JointController controller_;
 
     // Joint position limits
     StateVector joint_pos_min_, joint_pos_max_;
 
-    // for homing
-    StateVector q_homing_;
+    // for homing action
+    StateVector q_homing_;  // represent the robot's default standing posture
     double homing_duration_{5.0};
+
+    // for footend force calibration
     Vector4d cont_force_calibr_offset_, cont_force_calibr_factor_;
 
-    StateVector joint_pos_, joint_vel_, joint_trq_;
+    // StateVector joint_pos_, joint_vel_, joint_trq_;
 
     unitree::robot::ChannelFactory* channel_factory_;
 
@@ -172,6 +159,9 @@ private:
 
     /*LowCmd send thread*/
     unitree::common::ThreadPtr lowCmd_send_thread_;
+
+    /*Close sport_mode*/
+    unitree::robot::b2::MotionSwitcherClient switcher_client_;
 };
 
 }  // namespace go2_hw
