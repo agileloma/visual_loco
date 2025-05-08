@@ -31,10 +31,10 @@ class JointController
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    using JointStateVector = Eigen::Matrix<double, kNumJoint, 1>;
-    using JointActionVector = Eigen::Matrix<double, kDimAction*kNumJoint, 1> ;
-    using ConstRefJointStateVector = const Eigen::Ref<const JointStateVector>&;
-    using ConstRefJointActionVector = const Eigen::Ref<const JointActionVector>&;
+    using StateVector = Eigen::Matrix<double, kNumJoint, 1>;
+    using ActionVector = Eigen::Matrix<double, kDimAction*kNumJoint, 1>;
+    using ConstRefStateVector = const Eigen::Ref<const StateVector>&;
+    using ConstRefActionVector = const Eigen::Ref<const ActionVector>&;
 
     /**
      * @brief Constructor to initialize the controller with a scaling factor.
@@ -43,12 +43,12 @@ public:
     JointController(double torque_factor);
 
     // Accessors for feedback and feedforward terms
-    const JointStateVector& getPositionFeedbackTerm() const;
-    const JointStateVector& getVelocityFeedbackTerm() const;
-    const JointStateVector& getTorqueFeedforwardTerm() const;
+    const StateVector& getPositionFeedbackTerm() const;
+    const StateVector& getVelocityFeedbackTerm() const;
+    const StateVector& getTorqueFeedforwardTerm() const;
 
     // Accessors to computed torques
-    const JointStateVector& getDesiredJointTorques() const;
+    const StateVector& getDesiredJointTorques() const;
 
     /**
      * @brief Computes joint torques based on desired actions and measured states.
@@ -57,10 +57,10 @@ public:
      * @param meas_vel Measured joint velocities.
      * @return Computed joint torques.
      */
-    const JointStateVector& computeJointTorques(
-        ConstRefJointActionVector des_actions, 
-        ConstRefJointStateVector meas_pos, 
-        ConstRefJointStateVector meas_vel);
+    const StateVector& computeJointTorques(
+        ConstRefActionVector des_actions, 
+        ConstRefStateVector meas_pos, 
+        ConstRefStateVector meas_vel);
 
 private:
     /**
@@ -69,18 +69,18 @@ private:
      * @param meas_pos Measured joint positions.
      * @param meas_vel Measured joint velocities.
      */
-    void validateInputSizes(ConstRefJointActionVector des_actions, 
-                            ConstRefJointStateVector meas_pos, 
-                            ConstRefJointStateVector meas_vel) const;
+    void validateInputSizes(ConstRefActionVector des_actions, 
+                            ConstRefStateVector meas_pos, 
+                            ConstRefStateVector meas_vel) const;
         
     // Maximum joint torque limits
-    JointStateVector max_trq_;
+    StateVector max_trq_;
 
     // variables for output
-    JointStateVector pos_fd_term_, vel_fd_term_, trq_ff_term_;
+    StateVector pos_fd_term_, vel_fd_term_, trq_ff_term_;
 
     // Computed desired joint torques 
-    JointStateVector des_trq_;
+    StateVector des_trq_;
 };
 
 }  // namespace go2_hw
